@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sınıf Dedikodusu</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070a12;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+header{height:70px;padding:0 18px;border-bottom:1px solid #202a40;background:#090d17;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20}.logo{font-weight:800;font-size:20px}.logo small{display:block;color:#8992a8;font-size:11px;font-weight:500}.code{border:1px solid #8b7cff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700}
+.layout{display:grid;grid-template-columns:170px 1fr 350px;min-height:calc(100vh - 70px)}aside{border-right:1px solid #202a40;padding:18px 10px}.nav{padding:12px;border-radius:11px;color:#aeb6c9;margin-bottom:5px}.active{background:#22274b;color:white}
+main{padding:20px;max-width:1000px;width:100%;margin:auto}.search{width:100%;padding:14px;background:#0c1322;border:1px solid #202a40;border-radius:12px;color:white;outline:none}.title{font-size:19px;font-weight:800;margin:22px 0 13px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{background:#101727;border:1px solid #202a40;border-radius:15px;padding:14px;text-align:center}.avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;background:linear-gradient(135deg,#342a64,#173c63);border:2px solid #8b7cff;font-size:22px;font-weight:800}.name{font-weight:800;font-size:14px}.count{color:#8992a8;font-size:11px;margin:5px}.open{width:100%;padding:9px;border:1px solid #6875d9;border-radius:9px;background:transparent;color:#d8d9ff}
+.profile{border-left:1px solid #202a40;background:#090e19;padding:18px;position:sticky;top:70px;height:calc(100vh - 70px);overflow:auto}.profileTop{text-align:center}.big{width:90px;height:90px;border-radius:50%;margin:auto;display:grid;place-items:center;background:linear-gradient(135deg,#342a64,#173c63);border:2px solid #8b7cff;font-size:29px;font-weight:800}.profile h2{margin:10px 0 2px}.muted{color:#8992a8;font-size:12px}.commentsHead{border-top:1px solid #202a40;margin-top:18px;padding-top:14px;font-weight:800}.comment{border-bottom:1px solid #202a40;padding:12px 0;font-size:14px;line-height:1.4}.anon{font-size:10px;color:#8992a8;margin-bottom:4px}textarea{width:100%;margin-top:13px;background:#0d1422;border:1px solid #303a52;border-radius:11px;color:white;padding:11px;resize:none;outline:none}.send{width:100%;margin-top:7px;border:0;border-radius:10px;padding:11px;background:#5865e8;color:#fff;font-weight:800}.note{font-size:10px;color:#717b91;margin-top:7px}
+.modal{display:none}.empty{text-align:center;color:#8992a8;padding:30px}
+@media(max-width:1050px){.layout{grid-template-columns:65px 1fr}.profile{display:none}aside .nav{font-size:0;text-align:center}.grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){
+header{height:62px;padding:0 12px}.code{display:none}.layout{display:block}aside{display:none}main{padding:12px}.grid{grid-template-columns:repeat(2,1fr);gap:9px}.card{padding:11px}.avatar{width:62px;height:62px}
+.modal{position:fixed;inset:0;background:#000b;z-index:100;display:none;align-items:flex-end}.modal.show{display:flex}.modalBox{width:100%;max-height:88vh;overflow:auto;background:#090e19;border-radius:20px 20px 0 0;border-top:1px solid #39466b;padding:18px}.close{float:right;border:0;background:#222a3c;color:white;border-radius:9px;padding:7px 11px;font-size:18px}
+.modal .profile{display:block;position:static;height:auto;border:0;padding:0;background:transparent}.modal .big{width:75px;height:75px;font-size:24px}
+}
+</style>
+</head>
+<body>
+<header><div class="logo">💬 Sınıf Dedikodusu<small>Düşün, yaz, paylaş... (Anonim)</small></div><div class="code">13KARDES</div></header>
+<div class="layout">
+<aside><div class="nav active">👥 Tüm Öğrenciler</div><div class="nav">💬 Yorumlar</div><div class="nav">ⓘ Hakkında</div></aside>
+<main><input id="search" class="search" placeholder="Birini ara..."><div class="title">10/A — Öğrenciler</div><div id="grid" class="grid"></div></main>
+<section class="profile" id="desktopProfile"></section>
+</div>
+<div class="modal" id="modal"><div class="modalBox"><button class="close" onclick="closeModal()">×</button><div class="profile" id="mobileProfile"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://svphivpyesuwmtgarfwu.supabase.co";
+const SUPABASE_KEY="sb_publishable_ZSoudDBiM8wW5CTNOMHyKg_6q-cEzNT";
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const names=["Dinmuhammet", "Eyup", "Şirgeldi", "Perman", "Süleyman", "Kerwen", "Gazak", "Amatly", "Davut🖤", "Hamza", "Sähet", "Seyfulla", "Didar"];
+let data={};
+names.forEach(n=>data[n]=[]);
+let selected=names[0];
+
+const initials=n=>n.replace("🖤","").trim().split(/\s+/).map(x=>x[0]).join("").slice(0,2).toUpperCase();
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+
+function renderGrid(){
+ let q=document.getElementById("search").value.toLowerCase();
+ let arr=names.filter(n=>n.toLowerCase().includes(q));
+ document.getElementById("grid").innerHTML=arr.length?arr.map(n=>`<div class="card"><div class="avatar">${initials(n)}</div><div class="name">${esc(n)}</div><div class="count">💬 ${data[n].length} yorum</div><button class="open" onclick='selectPerson(${JSON.stringify(n)})'>Profili Gör</button></div>`).join(""):`<div class="empty">Kimse bulunamadı.</div>`;
+}
+
+function profileHTML(){
+ let cs=data[selected]||[];
+ return `<div class="profileTop"><div class="big">${initials(selected)}</div><h2>${esc(selected)}</h2><div class="muted">💬 ${cs.length} anonim yorum</div></div>
+ <div class="commentsHead">Yorumlar</div>
+ ${cs.length?cs.slice().reverse().map(c=>`<div class="comment"><div class="anon">Anonim · ${new Date(c.created_at).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>${esc(c.comment)}</div>`).join(""):`<div class="empty">Henüz yorum yok.</div>`}
+ <textarea id="commentText" rows="4" maxlength="300" placeholder="${esc(selected)} hakkında ne düşünüyorsun?"></textarea>
+ <button class="send" onclick="addComment()">Anonim Olarak Gönder</button>
+ <div class="note">Yorumlar herkes tarafından görülebilir. Hakaret, tehdit veya kişisel bilgi paylaşma.</div>`;
+}
+
+function renderProfile(){
+ document.getElementById("desktopProfile").innerHTML=profileHTML();
+ document.getElementById("mobileProfile").innerHTML=profileHTML();
+}
+
+function selectPerson(n){
+ selected=n;
+ renderProfile();
+ if(innerWidth<=650)document.getElementById("modal").classList.add("show");
+}
+
+function closeModal(){document.getElementById("modal").classList.remove("show");}
+
+async function loadComments(){
+ const {data:rows,error}=await supabaseClient
+   .from("comments")
+   .select("id,student_name,comment,created_at")
+   .order("created_at",{ascending:true});
+
+ if(error){
+   console.error(error);
+   document.getElementById("grid").innerHTML='<div class="empty">Yorumlar yüklenemedi. Supabase bağlantısını kontrol et.</div>';
+   return;
+ }
+
+ names.forEach(n=>data[n]=[]);
+ (rows||[]).forEach(row=>{
+   if(data[row.student_name]) data[row.student_name].push(row);
+ });
+ renderGrid();
+ renderProfile();
+}
+
+async function addComment(){
+ const fields=document.querySelectorAll("#commentText");
+ const el=fields[fields.length-1];
+ const text=el.value.trim();
+ if(!text)return;
+
+ const button=el.nextElementSibling;
+ button.disabled=true;
+ button.textContent="Gönderiliyor...";
+
+ const {error}=await supabaseClient
+   .from("comments")
+   .insert({student_name:selected,comment:text});
+
+ if(error){
+   console.error(error);
+   alert("Yorum gönderilemedi. Biraz sonra tekrar dene.");
+   button.disabled=false;
+   button.textContent="Anonim Olarak Gönder";
+   return;
+ }
+
+ await loadComments();
+}
+
+document.getElementById("search").addEventListener("input",renderGrid);
+renderGrid();
+renderProfile();
+loadComments();
+</script>
+</body></html>
